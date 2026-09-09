@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>★90s 급식공석탐색 - 티처블 머신★</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+  <style>
+    /* 1990s 레트로 스타일 글로벌 설정 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Comic Sans MS', 'Chalkboard SE', '돋움', dotum, sans-serif;
+      /* 무지개 대각선 대담한 그라데이션 배경 */
+      background: linear-gradient(
+        135deg, 
+        #ff0055, 
+        #ff5000, 
+        #ffcc00, 
+        #00cc44, 
+        #0099ff, 
+        #9900ff
+      );
+      background-attachment: fixed;
+      color: #000000;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* 레트로 포스터 스타일의 메인 컨테이너 */
+    .container {
+      width: 100%;
+      max-width: 650px;
+      background: #ffffcc;
+      border: 8px ridge #ff00ff;
+      outline: 6px dashed #00ffff;
+      box-shadow: 12px 12px 0px #000000;
+      padding: 24px;
+      position: relative;
+    }
+
+    header {
+      text-align: center;
+      border-bottom: 5px double #000;
+      padding: 15px;
+      margin-bottom: 20px;
+      background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff);
+      border-radius: 10px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      color: #ffffff;
+      text-shadow: 3px 3px 0px #000, -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000;
+      letter-spacing: 2px;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: #ffff00;
+      text-shadow: 2px 2px 0px #000;
+      background-color: #000;
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    .info-card {
+      background-color: #00ffff;
+      border: 3px solid #000;
+      box-shadow: 4px 4px 0px #000;
+      padding: 14px;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+      font-weight: bold;
+    }
+
+    .info-card p {
+      margin-bottom: 6px;
+    }
+
+    .info-card p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* 주요 기능 체험 영역 (90s 키치 스타일) */
+    .demo-section {
+      border: 4px dashed #ff0077;
+      background-color: #ffffff;
+      padding: 18px;
+      margin-bottom: 20px;
+      box-shadow: 6px 6px 0px #888888;
+    }
+
+    .demo-title {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: #ffffff;
+      background-color: #ff00ff;
+      text-align: center;
+      padding: 8px;
+      border: 2px solid #000;
+      box-shadow: 3px 3px 0px #000;
+      margin-bottom: 16px;
+      text-shadow: 1px 1px 0px #000;
+    }
+
+    /* 입력 방식 탭/버튼 (입체감 있는 버튼) */
+    .mode-selector {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: bold;
+      border: 3px solid #000;
+      box-shadow: 4px 4px 0px #000;
+      cursor: pointer;
+      min-height: 48px;
+      transition: all 0.1s;
+    }
+
+    .btn:active {
+      box-shadow: 1px 1px 0px #000;
+      transform: translate(3px, 3px);
+    }
+
+    .btn-primary {
+      background-color: #00ff66;
+      color: #000;
+    }
+
+    .btn-primary:hover {
+      background-color: #00cc52;
+    }
+
+    .btn-danger {
+      background-color: #ff3333;
+      color: #fff;
+      text-shadow: 1px 1px 0px #000;
+    }
+
+    .btn-danger:hover {
+      background-color: #cc0000;
+    }
+
+    /* 파일 업로드 전용 요소 */
+    #file-input {
+      display: none;
+    }
+
+    .file-label {
+      display: block;
+      flex: 1;
+      text-align: center;
+      background-color: #ff9900;
+      color: #000;
+      padding: 12px;
+      border: 3px solid #000;
+      box-shadow: 4px 4px 0px #000;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      min-height: 48px;
+      line-height: 22px;
+    }
+
+    .file-label:active {
+      box-shadow: 1px 1px 0px #000;
+      transform: translate(3px, 3px);
+    }
+
+    /* 이미지 및 카메라 입력 표시 창 */
+    .media-container {
+      width: 100%;
+      height: 280px;
+      background-color: #000033;
+      border: 4px inset #00ffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .media-container canvas, 
+    .media-container img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .placeholder-text {
+      color: #00ff00;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 1rem;
+      font-weight: bold;
+      text-align: center;
+      padding: 0 10px;
+      line-height: 1.8;
+    }
+
+    /* 상태 메시지 알림바 */
+    .status-message {
+      font-size: 0.95rem;
+      color: #0000cc;
+      background-color: #ffff00;
+      border: 2px solid #000;
+      padding: 6px;
+      text-align: center;
+      margin-bottom: 12px;
+      font-weight: bold;
+      min-height: 1.4em;
+    }
+
+    .error-message {
+      color: #ffffff;
+      background-color: #ff0000;
+      border: 3px double #ffffff;
+      padding: 10px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin-bottom: 12px;
+      display: none;
+      text-align: center;
+    }
+
+    /* 예측 결과 영역 */
+    .result-container {
+      min-height: 160px;
+      background-color: #fff0f5;
+      border: 3px solid #000;
+      box-shadow: 4px 4px 0px #000;
+      padding: 14px;
+    }
+
+    .top-prediction {
+      font-size: 1.4rem;
+      font-weight: bold;
+      text-align: center;
+      color: #ff00ff;
+      text-shadow: 1px 1px 0px #000;
+      margin-bottom: 4px;
+      background-color: #000;
+      padding: 6px;
+      border-radius: 4px;
+    }
+
+    .top-prediction-notice {
+      font-size: 0.75rem;
+      color: #333;
+      text-align: center;
+      margin-bottom: 12px;
+      font-weight: bold;
+    }
+
+    .bar-container {
+      margin-bottom: 10px;
+    }
+
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin-bottom: 2px;
+    }
+
+    .bar-background {
+      width: 100%;
+      background-color: #ddd;
+      border: 2px solid #000;
+      height: 20px;
+      overflow: hidden;
+    }
+
+    /* 무지개 그라데이션 막대 */
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff);
+      width: 0%;
+      transition: width 0.2s ease-in-out;
+    }
+
+    /* 주의사항 섹션 */
+    .notice-card {
+      background-color: #ffccff;
+      border: 3px solid #000;
+      box-shadow: 4px 4px 0px #000;
+      padding: 14px;
+      font-size: 0.85rem;
+      color: #000;
+      margin-bottom: 20px;
+    }
+
+    .notice-card h3 {
+      font-size: 1rem;
+      margin-bottom: 6px;
+      color: #cc0066;
+      text-shadow: 1px 1px 0px #fff;
+    }
+
+    .notice-card ul {
+      padding-left: 20px;
+      font-weight: bold;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #ffffff;
+      background-color: #000000;
+      border: 2px solid #ff00ff;
+      padding: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>★ 급식공석탐색 ★</h1>
+    <p class="subtitle">~ 티처블 머신 AI 체험관 ~</p>
+  </header>
+
+  <section class="info-card">
+    <p><strong>[해결하려는 문제]</strong> 급식실에서 빈 자리를 찾기 위해 많은 시간을 소비함</p>
+    <p><strong>[주요 사용자]</strong> 한영외고 학생들</p>
+  </section>
+
+  <section class="demo-section">
+    <div class="demo-title">★ 모델 실시간 체험하기 ★</div>
+
+    <div id="status-message" class="status-message">모델을 불러올 준비가 되었습니다.</div>
+    <div id="error-message" class="error-message"></div>
+
+    <div class="mode-selector">
+      <button id="btn-webcam-start" class="btn btn-primary" onclick="startWebcam()">카메라 시작</button>
+      <button id="btn-webcam-stop" class="btn btn-danger" onclick="stopWebcam()" style="display: none;">카메라 중지</button>
+      <label for="file-input" class="file-label" id="file-label">사진 파일 업로드</label>
+      <input type="file" id="file-input" accept="image/*" onchange="handleFileUpload(event)">
+    </div>
+
+    <div class="media-container" id="media-container">
+      <span class="placeholder-text" id="placeholder-text">&lt;&lt; READY &gt;&gt;<br>카메라 시작 버튼을 누르거나<br>사진을 업로드해주세요!</span>
+      <img id="uploaded-image" alt="업로드 이미지 미리보기" style="display: none;">
+    </div>
+
+    <div class="result-container">
+      <div id="top-prediction" class="top-prediction">- RESULT -</div>
+      <div class="top-prediction-notice">* 가장 높은 확률의 결과이며, 실제와 다를 수 있으므로 사람이 확인해야 합니다.</div>
+      <div id="label-container"></div>
+    </div>
+  </section>
+
+  <section class="notice-card">
+    <h3>⚠️ 모델의 한계 및 확인 사항</h3>
+    <ul>
+      <li><strong>모델의 한계:</strong> 인식 대상인 자리 주위에 사람이 있으면 공석을 만석으로 인식하기도 합니다.</li>
+      <li><strong>사람이 확인해야 할 부분:</strong>
+        <ul>
+          <li>'공석'으로 표시되었을 때 단순히 원래 주인이 잠시 자리를 비운 것이 아닌지 확인합니다.</li>
+          <li>'만석'으로 표시된 좌석이 뒤에 서 있는 사람 때문에 나온 결과가 아닌지 확인합니다.</li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>TEAM: 21.22 | MEMBERS: 21021 최동건, 21022 최예원</p>
+  </footer>
+</div>
+
+<script>
+  const MODEL_URL = "https://teachablemachine.withgoogle.com/models/AQpF9g9qL/";
+
+  let model, webcam, maxPredictions;
+  let isWebcamRunning = false;
+  let isModelLoading = false;
+  let animationFrameId = null;
+  let currentObjectURL = null;
+
+  const statusMsg = document.getElementById("status-message");
+  const errorMsg = document.getElementById("error-message");
+  const mediaContainer = document.getElementById("media-container");
+  const placeholderText = document.getElementById("placeholder-text");
+  const uploadedImage = document.getElementById("uploaded-image");
+  const labelContainer = document.getElementById("label-container");
+  const topPredictionEl = document.getElementById("top-prediction");
+  const btnWebcamStart = document.getElementById("btn-webcam-start");
+  const btnWebcamStop = document.getElementById("btn-webcam-stop");
+
+  function showError(message) {
+    errorMsg.innerText = message;
+    errorMsg.style.display = "block";
+  }
+
+  function clearError() {
+    errorMsg.innerText = "";
+    errorMsg.style.display = "none";
+  }
+
+  async function loadModel() {
+    if (model) return true;
+    if (isModelLoading) return false;
+
+    isModelLoading = true;
+    statusMsg.innerText = "모델을 불러오는 중입니다... 잠시만 기다려주세요.";
+    clearError();
+
+    try {
+      const modelURL = MODEL_URL + "model.json";
+      const metadataURL = MODEL_URL + "metadata.json";
+
+      model = await tmImage.load(modelURL, metadataURL);
+      maxPredictions = model.getTotalClasses();
+
+      labelContainer.innerHTML = "";
+      for (let i = 0; i < maxPredictions; i++) {
+        const classTitle = model.getClassLabels()[i];
+        
+        const barBox = document.createElement("div");
+        barBox.className = "bar-container";
+
+        const labelInfo = document.createElement("div");
+        labelInfo.className = "bar-label";
+        labelInfo.innerHTML = `<span>${classTitle}</span><span id="percent-${i}">0%</span>`;
+
+        const barBg = document.createElement("div");
+        barBg.className = "bar-background";
+
+        const barFill = document.createElement("div");
+        barFill.className = "bar-fill";
+        barFill.id = `fill-${i}`;
+
+        barBg.appendChild(barFill);
+        barBox.appendChild(labelInfo);
+        barBox.appendChild(barBg);
+        labelContainer.appendChild(barBox);
+      }
+
+      statusMsg.innerText = "모델이 성공적으로 로드되었습니다.";
+      isModelLoading = false;
+      return true;
+    } catch (err) {
+      isModelLoading = false;
+      statusMsg.innerText = "모델 로딩 실패";
+      showError("모델을 불러오지 못했습니다. 네트워크 상태를 확인하거나 모델 주소가 올바른지 확인해주세요.");
+      return false;
+    }
+  }
+
+  function updateUIResults(predictions) {
+    let highestProb = -1;
+    let highestClass = "";
+
+    for (let i = 0; i < maxPredictions; i++) {
+      const probability = predictions[i].probability;
+      const percentage = (probability * 100).toFixed(1);
+
+      const percentEl = document.getElementById(`percent-${i}`);
+      const fillEl = document.getElementById(`fill-${i}`);
+      if (percentEl) percentEl.innerText = `${percentage}%`;
+      if (fillEl) fillEl.style.width = `${percentage}%`;
+
+      if (probability > highestProb) {
+        highestProb = probability;
+        highestClass = predictions[i].className;
+      }
+    }
+
+    topPredictionEl.innerText = `${highestClass} (${(highestProb * 100).toFixed(1)}%)`;
+  }
+
+  async function startWebcam() {
+    clearError();
+    resetImagePreview();
+
+    const isLoaded = await loadModel();
+    if (!isLoaded) return;
+
+    if (isWebcamRunning) return;
+
+    try {
+      statusMsg.innerText = "카메라 권한을 요청 중입니다...";
+      const flip = true;
+      webcam = new tmImage.Webcam(250, 250, flip);
+      await webcam.setup();
+      await webcam.play();
+      
+      isWebcamRunning = true;
+
+      placeholderText.style.display = "none";
+      uploadedImage.style.display = "none";
+      
+      const existingCanvas = mediaContainer.querySelector("canvas");
+      if (existingCanvas) existingCanvas.remove();
+      
+      mediaContainer.appendChild(webcam.canvas);
+
+      btnWebcamStart.style.display = "none";
+      btnWebcamStop.style.display = "block";
+      statusMsg.innerText = "카메라가 실행 중입니다.";
+
+      loopWebcam();
+    } catch (err) {
+      stopWebcam();
+      statusMsg.innerText = "카메라 실행 실패";
+      showError("카메라를 실행할 수 없습니다. 권한을 허용했는지 또는 사용 가능한 카메라가 있는지 확인해주세요.");
+    }
+  }
+
+  async function loopWebcam() {
+    if (!isWebcamRunning) return;
+
+    webcam.update();
+    const prediction = await model.predict(webcam.canvas);
+    updateUIResults(prediction);
+
+    animationFrameId = window.requestAnimationFrame(loopWebcam);
+  }
+
+  function stopWebcam() {
+    if (animationFrameId) {
+      window.cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+
+    if (webcam) {
+      webcam.stop();
+      const canvas = mediaContainer.querySelector("canvas");
+      if (canvas) canvas.remove();
+      webcam = null;
+    }
+
+    isWebcamRunning = false;
+    btnWebcamStart.style.display = "block";
+    btnWebcamStop.style.display = "none";
+    placeholderText.style.display = "block";
+    statusMsg.innerText = "카메라가 중지되었습니다.";
+  }
+
+  async function handleFileUpload(event) {
+    clearError();
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showError("올바른 이미지 파일(JPG, PNG 등)을 선택해주세요.");
+      event.target.value = "";
+      return;
+    }
+
+    if (isWebcamRunning) {
+      stopWebcam();
+    }
+
+    resetImagePreview();
+
+    const isLoaded = await loadModel();
+    if (!isLoaded) {
+      event.target.value = "";
+      return;
+    }
+
+    statusMsg.innerText = "이미지를 분석하는 중입니다...";
+
+    currentObjectURL = URL.createObjectURL(file);
+    uploadedImage.src = currentObjectURL;
+    uploadedImage.style.display = "block";
+    placeholderText.style.display = "none";
+
+    uploadedImage.onload = async function() {
+      try {
+        const prediction = await model.predict(uploadedImage);
+        updateUIResults(prediction);
+        statusMsg.innerText = "이미지 분석 완료";
+      } catch (err) {
+        showError("이미지를 분석하는 과정에서 오류가 발생했습니다.");
+        statusMsg.innerText = "분석 실패";
+      }
+    };
+
+    uploadedImage.onerror = function() {
+      showError("이미지 파일을 읽을 수 없습니다. 다른 파일을 선택해주세요.");
+      statusMsg.innerText = "파일 읽기 실패";
+      resetImagePreview();
+    };
+
+    event.target.value = "";
+  }
+
+  function resetImagePreview() {
+    if (currentObjectURL) {
+      URL.revokeObjectURL(currentObjectURL);
+      currentObjectURL = null;
+    }
+    uploadedImage.src = "";
+    uploadedImage.style.display = "none";
+  }
+</script>
+
+</body>
+</html>
